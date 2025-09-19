@@ -1,0 +1,92 @@
+# ===================================================================
+# 训练配置文件: MAPPO with GNN for Multi-Agent SAT Solver
+# ===================================================================
+
+# --- 0. 全局和元数据参数 (Global & Metadata) ---
+SEED: 42                           # 全局随机种子
+CNF_DATA_DIR: "data/uf35-149"      # 【新增】存放 .cnf 文件的目录
+SAVE_DIR: "experiments/mappo_runs" # 【新增】实验结果的保存目录
+
+# --- 1. 环境相关参数 (Environment Parameters) ---
+environment:
+  NUM_VARS: 35                     # SAT 问题中的变量数量
+  NUM_CLAUSES: 149                 # SAT 问题中的子句数量
+  MAX_STEPS: 512                   # 每个 episode 的最大步数
+  VARS_PER_AGENT: 7             # (可选) 每个智能体负责的变量数
+  action_mode: 0
+  rewards:
+    R_CLAUSE: 0.00   # 新满足子句的奖励值
+    R_SAT: 20.0       # 成功解决问题的终局奖励
+
+# --- 2. 神经网络模型参数 (Network Parameters) ---
+network:
+  GNN_HIDDEN_DIM: 128              # GNN 中隐藏层的维度
+  GNN_NUM_MESSAGE_PASSING_STEPS: 16 # GNN 消息传递的步数
+
+# --- 3. 训练和 PPO 算法参数 (Training & PPO Parameters) ---
+training:
+  # 训练流程控制
+  NUM_ENVS: 128                     # 并行环境的数量
+  NUM_STEPS: 512                   # 每次 rollout 收集的步数 (每个环境)
+  NUM_UPDATES: 300                # 总共的训练更新次数
+  UPDATE_EPOCHS: 4                 # 每次更新时，对收集到的数据进行优化的轮数
+  MINIBATCH_SIZE: 256             # 在优化时，每个 minibatch 的大小
+
+  # 优化器和 PPO 核心参数
+  LEARNING_RATE: 0.0001
+  GAMMA: 0.995
+  GAE_LAMBDA: 0.95
+  CLIP_EPS: 0.12
+  ENT_COEF: 0.005
+  VF_COEF: 0.5
+  VF_CLIP: 0.5
+
+  # --- 学习率退火（改） ---
+  ANNEAL_LR: true
+  LR_START_FACTOR: 1.0
+  LR_END_FACTOR: 0.5
+  LR_END_FLOOR: 0.00002
+
+evaluation:
+  EVAL_INTERVAL: 10      # 每隔多少次 update 进行一次在线评估
+  EVAL_BATCH_SIZE: 32    # 在线评估时使用的问题样本数量
+
+
+#loading:
+#  # 指定要加载的检查点所在的运行目录的路径
+#  # 例如: "experiments/mappo_runs/2025-09-13_00-13-32"
+#  # 设为 null 或空字符串 "" 来禁用加载并从头开始训练
+#  LOAD_CHECKPOINT_PATH: "experiments/mappo_runs/2025-09-13_09-18-53"
+#
+#  # 是否重置优化器状态。
+#  # True: 只加载模型权重 (GNN, Actor, Critic)，优化器重新开始。适用于微调任务。
+#  # False: 加载模型权重和优化器状态，从上次中断的地方继续训练。
+#  RESET_OPTIMIZER: true
+
+loading:
+  # 场景一：从之前的 RL 训练中恢复，会加载完整的模型和优化器状态
+  # 路径指向一个 RL 运行目录，例如："experiments/mappo_runs/2025-09-13_..."
+  continue_rl_run_path: "experiments/mappo_runs/30-120"  # 或者 ""
+  # continue_rl_run_path: null
+  # 场景二：从 BC 预训练模型开始新的 RL 训练，只会注入 GNN 和 Actor 权重
+  # 路径指向 BC 模型目录，例如："models/bc_pretrained"
+#  inject_bc_model_path: "models/bc_pretrained"
+  inject_bc_model_path: null
+  # 这个开关只在 continue_rl_run_path 生效时有意义
+  # 对于 inject_bc_model_path，优化器总是会被重置
+  RESET_OPTIMIZER: true
+
+bc_training:
+  # 'single_active' (舊版) 或 'parallel_joint' (新版)
+  MODE: "parallel_joint"
+
+  # 如果某 agent 的最佳翻轉操作所帶來的 unsat 子句改善量小於此閾值，
+  # 則強制該 agent 選擇 no-op。0.0 意味著只要有任何改善就行動。
+  TAU_IMPROVE: 0.0
+
+  # (可選) 一致性懲罰係數，懲罰那些整體上讓結果變差的聯合動作標籤。
+  # 設為 0.0 以禁用。
+  CONSISTENCY_COEF: 0.0
+
+  # 在 parallel_joint 模式下，此參數無效，可設為 0.0
+  NOOP_SUPERVISION_COEF: 0.0

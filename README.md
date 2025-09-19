@@ -1,0 +1,67 @@
+# README
+
+## 📘 项目简介
+本项目实现了一个基于 **JAX** 的多智能体布尔可满足性问题（SAT）环境 —— `SATEnv`。  
+它继承自 `jaxmarl` 框架中的 `MultiAgentEnv`，用于在 **强化学习（Multi-Agent RL）** 框架下研究 SAT 问题的求解与智能体协作。
+
+SAT 问题是 NP 完全问题的典型代表，本项目通过将变量分配给多个智能体，让其在交互过程中学习如何翻转变量，以最大化子句满足数或完全解出公式。
+
+---
+
+## 🔑 核心功能
+1. **SAT 环境建模**  
+   - 将 CNF 形式的布尔公式作为输入。  
+   - 支持变量划分为多个智能体，每个智能体操作一部分变量。
+
+2. **多智能体交互**  
+   - 每个智能体的动作空间：翻转负责的某个变量，或选择“不动作”。  
+   - 奖励函数：基于子句满足数量的增减为智能体分配奖励。
+
+3. **状态与观测**  
+   - 每个智能体观测包括：
+     - 自己负责变量的赋值状态；
+     - 与其相关子句的满足情况；
+     - 邻居变量的状态。  
+
+4. **灵活分组机制**  
+   - 支持用户手动指定每个智能体负责的变量数。  
+   - 支持自动分组，依据变量总数自动寻找合理划分（4~10 个变量为最佳范围）。
+
+5. **高效计算**  
+   - 使用 **JAX JIT** 加速计算。  
+   - 所有操作均基于 JAX/Numpy，支持 GPU/TPU 并行化。
+
+---
+
+## 📂 代码结构
+- **`SATState`**  
+  使用 `@chex.dataclass` 定义的状态，包括变量赋值、子句满足情况、未满足子句数等。  
+
+- **`SATEnv`**  
+  核心环境类，继承自 `MultiAgentEnv`，主要方法：
+  - `_create_agent_groups`：划分变量组。  
+  - `_precompute_relationships`：预计算子句与邻居关系掩码。  
+  - `reset`：重置环境，生成初始状态。  
+  - `step_env`：执行一步环境更新，返回新状态、奖励和结束标记。  
+  - `get_obs`：为每个智能体生成观测向量。  
+  - `_calculate_satisfaction_explicit`：计算子句满足情况。  
+  - `_calculate_rewards`：计算奖励。  
+
+---
+
+## 🛠️ 依赖环境
+运行本项目需要以下依赖：
+- Python ≥ 3.9  
+- [JAX](https://github.com/google/jax)  
+- [jaxmarl](https://github.com/FLAIR-Group/jaxmarl)  
+- chex  
+- numpy  
+
+安装方式：
+```bash
+pip install jax jaxlib chex
+pip install git+https://github.com/FLAIR-Group/jaxmarl.git
+
+
+每次flip几个 让用户决定，MDP  一次完成全部的assignment，每个step 给出完整assignment
+最后给出 gold solution

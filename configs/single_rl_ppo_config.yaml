@@ -1,0 +1,70 @@
+# ===================================================================
+#          PPO Reinforcement Learning Configuration for SAT Solver
+# ===================================================================
+
+# 全局随机种子，用于保证实验的可复现性
+SEED: 0
+
+# -------------------------------------------------------------------
+# 环境 (Environment) 相关参数
+# -------------------------------------------------------------------
+ENV_PARAMS:
+  # 存放 .cnf 文件的目录路径
+  CNF_DATA_DIR: "data/uf50-213"
+
+  # 环境包装器 (Wrapper) 的参数
+  WRAPPER_PARAMS:
+    # 对齐子句的长度，最大子句长度为100，不足填充0
+    max_clause_len: 100
+    # 成功解决 SAT 问题时获得的额外奖励
+    c_bonus: 5.0
+    # 未满足子句的惩罚缩放系数
+    alpha: 1.0
+    # 每个 episode 的最大步数限制
+    max_steps: 750
+
+# -------------------------------------------------------------------
+# 模型 (Model) 相关参数
+# -------------------------------------------------------------------
+MODEL_PARAMS:
+  # GNN 和 MLP 中隐藏层的维度
+  HIDDEN_DIM: 128
+  # GNN 消息传递的轮数
+  NUM_MESSAGE_PASSING_STEP: 8
+
+# -------------------------------------------------------------------
+# 训练 (Training) 相关参数
+# -------------------------------------------------------------------
+TRAIN_PARAMS:
+  # 加载model
+  RESUME_CKPT_PATH: "experiments/single_rl/2025-08-27_22-35-50/checkpoints"
+#  RESUME_CKPT_PATH:
+  # 初始学习率
+  LR: 0.0001 # 2.5e-4 is a common starting point for PPO
+  # 训练总步数 (智能体与环境交互的总次数)
+  TOTAL_TIMESTEPS: 100000
+  # 每次更新模型前，收集多少步的经验数据 (Rollout auffer size)
+  NUM_STEPS: 512
+  # 是否使用学习率线性衰减 (在训练后期降低学习率，有助于收敛)
+  ANNEAL_LR: True
+  # 总训练次数
+  NUM_CYCLES : 5000
+
+# -------------------------------------------------------------------
+# PPO 算法核心超参数
+# -------------------------------------------------------------------
+PPO_PARAMS:
+  # 折扣因子 (Discount factor)，衡量未来奖励的重要性
+  GAMMA: 0.99
+  # GAE (Generalized Advantage Estimation) 的 lambda 参数
+  GAE_LAMBDA: 0.95
+  # PPO-Clip 的裁剪范围 (Trust region)，通常在 0.1 到 0.3 之间
+  CLIP_EPS: 0.2
+  # 价值函数损失 (Value Function Loss) 在总损失中的权重
+  VF_COEF: 0.5
+  # 熵奖励 (Entropy Bonus) 在总损失中的权重，鼓励探索
+  ENT_COEF: 0.01
+  # 每次使用同一批数据更新模型的轮数 (Epochs)
+  UPDATE_EPOCHS: 2
+  # 在每个 epoch 中，将数据分成多少个小批量 (Minibatches) 进行更新
+  NUM_MINIBATCHES: 4
